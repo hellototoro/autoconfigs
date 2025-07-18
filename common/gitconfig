@@ -1,0 +1,24 @@
+[user]
+    name = huangjian
+    email = huangjian921@outlook.com
+
+[core]
+    editor = vim
+    autocrlf = input
+    pager = less -r
+
+[color]
+    ui = auto
+
+[alias]
+    st = status
+    ci = commit
+    co = checkout
+    br = branch
+    lg = log --oneline --graph --decorate --all
+    last = log -1 HEAD
+    unstage = reset HEAD --
+    amend = commit --amend --no-edit
+
+[push]
+    default = simple
