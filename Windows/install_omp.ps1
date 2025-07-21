@@ -1,17 +1,3 @@
-# 安装最新版 PowerShell 7
-winget install --id Microsoft.PowerShell --source winget
-
-# 检查并安装 OhMyPosh
-Write-Host "正在检查 OhMyPosh 安装状态..."
-$ohMyPoshInstalled = winget list JanDeDobbeleer.OhMyPosh 2>$null
-if ($LASTEXITCODE -eq 0 -and $ohMyPoshInstalled -match "JanDeDobbeleer.OhMyPosh") {
-    Write-Host "检测到 OhMyPosh 已安装，正在卸载旧版本..."
-    winget uninstall JanDeDobbeleer.OhMyPosh
-    Write-Host "旧版本已卸载，正在安装最新版本..."
-} else {
-    Write-Host "OhMyPosh 未安装，正在安装..."
-}
-winget install JanDeDobbeleer.OhMyPosh
 
 # 安装/更新 Terminal-Icons、posh-git、ZLocation2 模块
 $modules = @('Terminal-Icons', 'posh-git', 'ZLocation2')
@@ -39,8 +25,6 @@ foreach ($moduleName in $modules) {
     }
 }
 
-# 安装 Meslo 字体
-oh-my-posh font install meslo
 
 # 设置 Windows Terminal 默认终端为 PowerShell 7
 $settingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
@@ -192,5 +176,10 @@ oh-my-posh init pwsh --config `"`$env:POSH_THEMES_PATH\$theme`" | Invoke-Express
 Import-Module Terminal-Icons
 Import-Module posh-git
 Import-Module ZLocation2
+
+Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward       # 设置向上键为后向搜索历史记录
+Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward      # 设置向下键为前向搜索历史纪录
+Set-PSReadlineKeyHandler -Key Tab -Function Complete                        # 设置 Tab 键补全
+Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function MenuComplete               # 设置 Ctrl+d 为菜单补全和 Intellisense
 "@
 Write-Host "`n已完成配置，请重启 PowerShell 7 或 Windows Terminal。"
