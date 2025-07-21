@@ -93,6 +93,26 @@ curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common
 
 ## 🚀 使用指南
 
+### 配置 Git
+
+```bash
+# 下载 Git 配置文件
+curl -O https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig
+
+# 方法 1：复制配置文件
+# Linux
+cp gitconfig ~/.gitconfig
+# Windows
+Copy-Item common\gitconfig $env:USERPROFILE\.gitconfig
+
+# 方法 2：直接下载到目标位置（推荐）
+curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig -o ~/.gitconfig
+
+# 记得修改用户信息
+git config --global user.name "你的姓名"
+git config --global user.email "你的邮箱"
+```
+
 ### Linux 系统
 
 #### 安装 Oh My Bash
@@ -119,23 +139,6 @@ chmod +x install_omb.sh
 source ~/.bashrc
 ```
 
-#### 配置 Git
-
-```bash
-# 下载 Git 配置文件
-curl -O https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig
-
-# 方法 1：复制配置文件
-cp gitconfig ~/.gitconfig
-
-# 方法 2：直接下载到目标位置（推荐）
-curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig -o ~/.gitconfig
-
-# 记得修改用户信息
-git config --global user.name "你的姓名"
-git config --global user.email "你的邮箱"
-```
-
 ### Windows 系统
 
 #### 安装 Oh My Posh
@@ -159,17 +162,6 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    - 打开 VSCode 设置
    - 搜索 `terminal.integrated.fontFamily`
    - 设置为：`MesloLGM Nerd Font`
-
-#### Windows Git 配置
-
-```powershell
-# 复制配置文件到用户目录
-Copy-Item common\gitconfig $env:USERPROFILE\.gitconfig
-
-# 修改用户信息
-git config --global user.name "你的姓名"
-git config --global user.email "你的邮箱"
-```
 
 ---
 
