@@ -1,27 +1,66 @@
 
+# 检查 PowerShell 7 是否已安装
+if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+    Write-Host "PowerShell 7 未安装，正在尝试安装..." -ForegroundColor Yellow
+    try {
+        winget install Microsoft.PowerShell -s winget
+        Write-Host "PowerShell 7 安装完成！" -ForegroundColor Green
+        Write-Host "请重启终端并使用 PowerShell 7 (pwsh) 运行此脚本" -ForegroundColor Yellow
+        Write-Host "您可以在 Windows Terminal 中选择 'PowerShell' 配置文件" -ForegroundColor Cyan
+        exit
+    } catch {
+        Write-Host "自动安装失败，请手动安装 PowerShell 7: winget install Microsoft.PowerShell" -ForegroundColor Red
+        Write-Host "或访问: https://github.com/PowerShell/PowerShell/releases" -ForegroundColor Cyan
+        exit
+    }
+}
+
+Write-Host "检测到 PowerShell 7 已安装，版本: $((Get-Command pwsh).Version)" -ForegroundColor Green
+
+# 检查 oh-my-posh 是否已安装
+if (-not (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
+    Write-Host "oh-my-posh 未安装，正在尝试安装..." -ForegroundColor Yellow
+    try {
+        winget install JanDeDobbeleer.OhMyPosh -s winget
+        Write-Host "oh-my-posh 安装完成，请重启终端后再次运行此脚本" -ForegroundColor Green
+        exit
+    } catch {
+        Write-Host "自动安装失败，请手动安装 oh-my-posh: winget install JanDeDobbeleer.OhMyPosh" -ForegroundColor Red
+        exit
+    }
+}
+
+Write-Host "检测到 oh-my-posh 已安装" -ForegroundColor Green
+
 # 安装/更新 Terminal-Icons、posh-git、ZLocation2 模块
 $modules = @('Terminal-Icons', 'posh-git', 'ZLocation2')
 foreach ($moduleName in $modules) {
     Write-Host "正在检查模块: $moduleName"
-    
+
     # 检查模块是否已安装
     $installedModule = Get-Module -ListAvailable -Name $moduleName
-    
+
     if ($installedModule) {
-        Write-Host "模块 $moduleName 已安装，版本: $($installedModule.Version)"
-        
+        Write-Host "模块 $moduleName 已安装，版本: $($installedModule.Version)" -ForegroundColor Green
+
         # 检查模块是否正在运行
         $runningModule = Get-Module -Name $moduleName
         if ($runningModule) {
             Write-Host "模块 $moduleName 正在运行，正在停止..."
             Remove-Module -Name $moduleName -Force
         }
-        
-        Write-Host "正在更新模块 $moduleName..."
-        Update-Module -Name $moduleName -Scope CurrentUser -Force
+
+        try {
+            Write-Host "正在检查模块 $moduleName 是否有更新..."
+            Update-Module -Name $moduleName -Scope CurrentUser -Force -ErrorAction Stop
+            Write-Host "模块 $moduleName 更新检查完成" -ForegroundColor Green
+        } catch {
+            Write-Host "模块 $moduleName 无需更新或更新失败（这通常不影响使用）" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "模块 $moduleName 未安装，正在安装..."
         Install-Module -Name $moduleName -Scope CurrentUser -Force
+        Write-Host "模块 $moduleName 安装完成" -ForegroundColor Green
     }
 }
 
@@ -29,42 +68,56 @@ foreach ($moduleName in $modules) {
 # 设置 Windows Terminal 默认终端为 PowerShell 7
 $settingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 if (Test-Path $settingsPath) {
-    Write-Host "正在配置 Windows Terminal 设置..." -ForegroundColor Yellow
-    
+    Write-Host "正在检查 Windows Terminal 设置..." -ForegroundColor Yellow
+
     try {
         $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-        
+
         # 查找 PowerShell 7 配置文件
-        $pwshProfile = $settings.profiles.list | Where-Object { 
+        $pwshProfile = $settings.profiles.list | Where-Object {
             $_.name -like "*PowerShell*" -and ($_.commandline -like "*pwsh*" -or $_.source -eq "Windows.Terminal.PowershellCore")
         }
-        
+
         if ($pwshProfile) {
-            Write-Host "找到 PowerShell 7 配置文件: $($pwshProfile.name)" -ForegroundColor Green
-            
-            # 设置默认配置文件为 PowerShell 7
-            $settings.defaultProfile = $pwshProfile.guid
-            Write-Host "已设置默认终端为 PowerShell 7 (GUID: $($pwshProfile.guid))" -ForegroundColor Green
-            
+            $needsUpdate = $false
+
+            # 检查是否需要更新默认配置文件
+            if ($settings.defaultProfile -ne $pwshProfile.guid) {
+                $settings.defaultProfile = $pwshProfile.guid
+                $needsUpdate = $true
+                Write-Host "已设置默认终端为 PowerShell 7 (GUID: $($pwshProfile.guid))" -ForegroundColor Green
+            } else {
+                Write-Host "默认终端已经是 PowerShell 7" -ForegroundColor Green
+            }
+
             # 确保 profiles.defaults 存在
             if (-not $settings.profiles.defaults) {
                 $settings.profiles | Add-Member -MemberType NoteProperty -Name "defaults" -Value @{} -Force
             }
-            
-            # 设置默认字体
+
+            # 检查是否需要设置默认字体
             if (-not $settings.profiles.defaults.font) {
                 $settings.profiles.defaults | Add-Member -MemberType NoteProperty -Name "font" -Value @{} -Force
             }
-            $settings.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "face" -Value "MesloLGM Nerd Font" -Force
-            Write-Host "已设置默认字体为 MesloLGM Nerd Font" -ForegroundColor Green
-            
-            # 保存设置
-            $settings | ConvertTo-Json -Depth 100 | Set-Content $settingsPath -Encoding UTF8
-            Write-Host "Windows Terminal 配置已更新" -ForegroundColor Green
+            if ($settings.profiles.defaults.font.face -ne "MesloLGM Nerd Font") {
+                $settings.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "face" -Value "MesloLGM Nerd Font" -Force
+                $needsUpdate = $true
+                Write-Host "已设置默认字体为 MesloLGM Nerd Font" -ForegroundColor Green
+            } else {
+                Write-Host "默认字体已经是 MesloLGM Nerd Font" -ForegroundColor Green
+            }
+
+            # 仅在需要时保存设置
+            if ($needsUpdate) {
+                $settings | ConvertTo-Json -Depth 100 | Set-Content $settingsPath -Encoding UTF8
+                Write-Host "Windows Terminal 配置已更新" -ForegroundColor Green
+            } else {
+                Write-Host "Windows Terminal 配置无需更新" -ForegroundColor Cyan
+            }
         } else {
             Write-Host "未找到 PowerShell 7 配置文件，请确保已安装 PowerShell 7" -ForegroundColor Red
             Write-Host "可用的配置文件:" -ForegroundColor Yellow
-            $settings.profiles.list | ForEach-Object { 
+            $settings.profiles.list | ForEach-Object {
                 Write-Host "  - $($_.name) (GUID: $($_.guid))" -ForegroundColor White
             }
         }
@@ -76,103 +129,19 @@ if (Test-Path $settingsPath) {
     Write-Host "请确保已安装 Windows Terminal" -ForegroundColor Yellow
 }
 
-# 提示用户手动设置 VSCode 终端字体
-Write-Host "`n请将 VSCode 的 terminal.integrated.fontFamily 设置为: MesloLGM Nerd Font`n"
+# 提示用户手动设置字体
+Write-Host "`n===================" -ForegroundColor Yellow
+Write-Host "字体配置提醒" -ForegroundColor Yellow
+Write-Host "===================" -ForegroundColor Yellow
+Write-Host "请确保已安装 Nerd Font 字体（如 MesloLGM Nerd Font）" -ForegroundColor Cyan
+Write-Host "下载地址: https://www.nerdfonts.com/font-downloads" -ForegroundColor Cyan
+Write-Host "`n配置方法:" -ForegroundColor White
+Write-Host "1. VSCode: 设置 terminal.integrated.fontFamily 为 'MesloLGM Nerd Font'" -ForegroundColor White
+Write-Host "2. Windows Terminal: 在设置中已自动配置为 'MesloLGM Nerd Font'`n" -ForegroundColor White
 
 # 设置 PowerShell 7 的 prompt 和导入模块
-if ((Test-Path $PROFILE)) {
-    # 如果配置文件已存在，先备份，再删除
-    $backupPath = "$PROFILE.bak"
-    Copy-Item -Path $PROFILE -Destination $backupPath -Force
-    Remove-Item -Path $PROFILE -Force
-}
-
-New-Item -Path $PROFILE -Type File -Force | Out-Null
-
-# 列出可用主题
-Write-Host "`n可用的 OhMyPosh 主题:" -ForegroundColor Cyan
-Write-Host "========================" -ForegroundColor Cyan
-
-try {
-    # 获取主题目录路径
-    $themesPath = $env:POSH_THEMES_PATH
-    if (-not $themesPath -or -not (Test-Path $themesPath)) {
-        # 尝试通过 oh-my-posh 命令获取主题路径
-        $envOutput = oh-my-posh get shell
-        if ($env:POSH_THEMES_PATH) {
-            $themesPath = $env:POSH_THEMES_PATH
-        } else {
-            # 默认主题路径
-            $themesPath = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes"
-        }
-    }
-    
-    if (Test-Path $themesPath) {
-        $themeFiles = Get-ChildItem -Path $themesPath -Filter "*.omp.json" | Sort-Object Name
-        $counter = 1
-        $themeList = @()
-        
-        foreach ($themeFile in $themeFiles) {
-            $themeName = $themeFile.BaseName
-            $themeList += $themeName
-            Write-Host "[$counter] $themeName" -ForegroundColor Yellow
-            $counter++
-        }
-        
-        Write-Host "`n推荐主题:" -ForegroundColor Green
-        Write-Host "- jandedobbeleer (默认)" -ForegroundColor Green
-        Write-Host "- powerline (经典)" -ForegroundColor Green
-        Write-Host "- agnoster (流行)" -ForegroundColor Green
-        Write-Host "- paradox (简洁)" -ForegroundColor Green
-        
-        Write-Host "`n您可以:" -ForegroundColor Cyan
-        Write-Host "1. 输入主题名称 (如: jandedobbeleer)" -ForegroundColor White
-        Write-Host "2. 输入主题编号 (如: 1)" -ForegroundColor White
-        Write-Host "3. 直接按回车使用默认主题 (jandedobbeleer)" -ForegroundColor White
-        
-        $userInput = Read-Host "`n请选择主题"
-        
-        if ([string]::IsNullOrWhiteSpace($userInput)) {
-            $theme = "jandedobbeleer"
-        } elseif ($userInput -match '^\d+$') {
-            # 用户输入的是数字
-            $index = [int]$userInput - 1
-            if ($index -ge 0 -and $index -lt $themeList.Count) {
-                $theme = $themeList[$index]
-            } else {
-                Write-Host "无效的编号，使用默认主题" -ForegroundColor Yellow
-                $theme = "jandedobbeleer"
-            }
-        } else {
-            # 用户输入的是主题名称
-            $theme = $userInput
-        }
-    } else {
-        Write-Host "无法找到主题目录，使用默认主题" -ForegroundColor Yellow
-        $theme = Read-Host "请输入 OhMyPosh 主题名称 (如 jandedobbeleer, powerline)"
-        if ([string]::IsNullOrWhiteSpace($theme)) { $theme = "jandedobbeleer" }
-    }
-} catch {
-    Write-Host "列出主题时出错: $($_.Exception.Message)" -ForegroundColor Red
-    $theme = Read-Host "请输入 OhMyPosh 主题名称 (如 jandedobbeleer, powerline)"
-    if ([string]::IsNullOrWhiteSpace($theme)) { $theme = "jandedobbeleer" }
-}
-
-# 如果用户输入的不是 .omp.json 结尾，自动添加后缀
-if (-not $theme.EndsWith(".omp.json")) {
-    if ($theme.EndsWith(".omp")) {
-        # 如果用户输入的是 .omp，自动添加 .json 后缀
-        $theme = "$theme.json"
-    } else {
-        # 否则直接添加 .omp.json 后缀
-        $theme = "$theme.omp.json"
-    }
-}
-
-Write-Host "`n选择的主题: $theme" -ForegroundColor Green
-
-Add-Content $PROFILE @"
-oh-my-posh init pwsh --config `"`$env:POSH_THEMES_PATH\$theme`" | Invoke-Expression
+$configToAdd = @"
+oh-my-posh init pwsh | Invoke-Expression
 Import-Module Terminal-Icons
 Import-Module posh-git
 Import-Module ZLocation2
@@ -182,4 +151,67 @@ Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward      # �
 Set-PSReadlineKeyHandler -Key Tab -Function Complete                        # 设置 Tab 键补全
 Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function MenuComplete               # 设置 Ctrl+d 为菜单补全和 Intellisense
 "@
-Write-Host "`n已完成配置，请重启 PowerShell 7 或 Windows Terminal。"
+
+# 检查配置文件是否已存在
+$needsProfileUpdate = $false
+$profileExists = Test-Path $PROFILE
+
+if ($profileExists) {
+    # 如果配置文件已存在，检查是否已有 oh-my-posh 配置
+    $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
+
+    if ($profileContent -match 'oh-my-posh') {
+        Write-Host "检测到 PowerShell 配置文件中已有 oh-my-posh 配置" -ForegroundColor Green
+        Write-Host "配置文件路径: $PROFILE" -ForegroundColor Cyan
+
+        $response = Read-Host "是否要重新配置？(y=覆盖配置/s=跳过配置/N=退出) [N]"
+
+        if ($response -eq 'y' -or $response -eq 'Y') {
+            $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+            $backupPath = $PROFILE + '.backup_' + $timestamp
+            Copy-Item -Path $PROFILE -Destination $backupPath -Force
+            Write-Host "已备份原配置文件到: $backupPath" -ForegroundColor Green
+            Remove-Item -Path $PROFILE -Force
+            New-Item -Path $PROFILE -Type File -Force | Out-Null
+            $needsProfileUpdate = $true
+        } elseif ($response -eq 's' -or $response -eq 'S') {
+            Write-Host "跳过配置文件更新，使用现有配置" -ForegroundColor Yellow
+            Write-Host "`n===========================" -ForegroundColor Green
+            Write-Host "脚本执行完成！" -ForegroundColor Green
+            Write-Host "===========================" -ForegroundColor Green
+            Write-Host "现有配置文件位置: $PROFILE" -ForegroundColor Cyan
+            exit
+        } else {
+            Write-Host "已退出脚本" -ForegroundColor Yellow
+            exit
+        }
+    } else {
+        # 没有 oh-my-posh 配置，追加到文件末尾
+        Write-Host "将在现有配置文件末尾追加 oh-my-posh 配置" -ForegroundColor Green
+        $needsProfileUpdate = $true
+    }
+} else {
+    # 配置文件不存在，创建新文件
+    New-Item -Path $PROFILE -Type File -Force | Out-Null
+    Write-Host "已创建新的 PowerShell 配置文件" -ForegroundColor Green
+    $needsProfileUpdate = $true
+}
+
+# 仅在需要时写入配置
+if ($needsProfileUpdate) {
+    # 写入配置
+    Add-Content $PROFILE $configToAdd
+
+    Write-Host "`n============================" -ForegroundColor Green
+    Write-Host "配置完成！" -ForegroundColor Green
+    Write-Host "============================" -ForegroundColor Green
+    Write-Host "请执行以下操作之一使配置生效:" -ForegroundColor Yellow
+    Write-Host "1. 重启 PowerShell 7 或 Windows Terminal" -ForegroundColor White
+    Write-Host "2. 在当前会话中运行: . `$PROFILE" -ForegroundColor White
+    Write-Host "`n配置文件位置: $PROFILE" -ForegroundColor Cyan
+} else {
+    Write-Host "`n============================" -ForegroundColor Green
+    Write-Host "脚本执行完成！" -ForegroundColor Green
+    Write-Host "============================" -ForegroundColor Green
+    Write-Host "配置文件未修改" -ForegroundColor Yellow
+}
