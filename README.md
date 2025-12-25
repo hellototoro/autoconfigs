@@ -86,7 +86,7 @@ git unstage # git reset HEAD --
 
 ```bash
 # 直接下载配置文件
-curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig -o ~/.gitconfig
+curl -fsSL https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/common/gitconfig -o ~/.gitconfig
 ```
 
 ---
@@ -97,7 +97,7 @@ curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common
 
 ```bash
 # 下载 Git 配置文件
-curl -O https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig
+curl -LO https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/common/gitconfig
 
 # 方法 1：复制配置文件
 # Linux
@@ -106,7 +106,7 @@ cp gitconfig ~/.gitconfig
 Copy-Item common\gitconfig $env:USERPROFILE\.gitconfig
 
 # 方法 2：直接下载到目标位置（推荐）
-curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/common/gitconfig -o ~/.gitconfig
+curl -fsSL https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/common/gitconfig -o ~/.gitconfig
 
 # 记得修改用户信息
 git config --global user.name "你的姓名"
@@ -119,7 +119,7 @@ git config --global user.email "你的邮箱"
 
 ```bash
 # 直接下载并运行安装脚本
-curl -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/Linux/install_omb.sh | bash
+curl -fsSL https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/linux/install_omb.sh | bash
 
 # 使配置生效
 source ~/.bashrc
@@ -129,7 +129,7 @@ source ~/.bashrc
 
 ```bash
 # 下载脚本
-curl -O https://raw.githubusercontent.com/hellototoro/autoconfigs/main/Linux/install_omb.sh
+curl -LO https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/linux/install_omb.sh
 
 # 添加执行权限并运行
 chmod +x install_omb.sh
@@ -182,14 +182,14 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ```bash
 # 检查网络连接，或使用代理
-curl --proxy http://proxy:port -fsSL https://raw.githubusercontent.com/hellototoro/autoconfigs/main/Linux/install_omb.sh | bash
+curl --proxy http://proxy:port -fsSL https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/common/gitconfig | bash
 ```
 
 **Q: Oh My Bash 安装失败？**
 
 ```bash
 # 手动安装
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)"
+bash -c "$(curl -fsSL https://github.com/hellototoro/autoconfigs/raw/refs/heads/main/common/gitconfig)"
 ```
 
 **Q: 主题不生效？**
